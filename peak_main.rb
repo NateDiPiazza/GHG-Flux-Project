@@ -53,7 +53,7 @@ while !var.eql?(stop)
 	var = file.gets()
 	if c == 8
 		gas = var.delete "<DESCRIPTION>="
-<<<<<<< HEAD
+
                 # added for newer verisions of Peak Simple
                 if gas.size > 3
                 	gas = gas[0..2]
@@ -74,11 +74,11 @@ while !var.eql?(stop)
                 starting_point = Time.new(start_date[2].to_i, start_date[0].to_i, start_date[1].to_i, start_time[0].to_i, start_time[1].to_i, start_time[2].to_i)
                 
         end
-=======
+
 		#puts "description: " + gas
 		gas.chop!
 	end
->>>>>>> github/master
+
 	
 end
 # variables in this block are used for seperating peak file into ordered arrays
@@ -102,7 +102,7 @@ for i in 0..(a.size - 1)
 	tmp.delete_at(0) #deletes the identical millivolt reading;
 	# add following if neeeded: subtract form index with standards
         # shaves of min. number for testing 
-<<<<<<< HEAD
+
 	volt[i] = (Integer(tmp[0]))
         # starting_point is a time object 
         # adding i adds one second to time sample
@@ -134,7 +134,7 @@ for i in 0..(a.size - 1)
         #time[i] = date + " "
 	#time[i] += tmp[2]
 	#########################################################################
-=======
+
 	volt[i] = (Integer(tmp[0])) 
         date = tmp[1] #formatting to match sql timestamp enforcement
         temp_date = date.split('/') #index list: 0 is month, 1 is day, 2 is year
@@ -154,7 +154,7 @@ for i in 0..(a.size - 1)
         time[i] = date + " "
 	time[i] += tmp[2]
 	
->>>>>>> github/master
+
 end
 
 # data needed to find peaks
