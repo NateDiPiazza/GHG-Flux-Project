@@ -1,7 +1,10 @@
 Finds peaks in peak simple files generated from a chromatograph (N20 and CH4)
 
+<<<<<<< HEAD
 Note: Negative mV values are ignored by peak finder
 
+=======
+>>>>>>> github/master
 peak_main.rb: A ruby program that accepts two command line arguments; <peak simple filename> <Pos.tolerance size> 
 
 (default tolerance is 110 mV) 2nd argument is optional
@@ -10,9 +13,13 @@ If the file is valid it uses the peak_finder gem to find the peaks, and extract 
 
 that are used by the peak_integration gem to find the area of the peaks discovered. 
 
+<<<<<<< HEAD
 The main class then outputs a comma seperated text file with the Start, End, and Area in a file named millivolt.txt
 
 This program can process Peak Simple files with or without timestamps included as columns.
+=======
+The main class then outputs a comma seperated text file with the Start, End, and Area in a filed named millivolt.txt
+>>>>>>> github/master
 
 Nate DiPiazza
 GLBRC
