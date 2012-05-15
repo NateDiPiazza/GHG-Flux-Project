@@ -75,12 +75,8 @@ while !var.eql?(stop)
                 
         end
 
-		#puts "description: " + gas
-		gas.chop!
-	end
+end # end while !var.eql?(stop)
 
-	
-end
 # variables in this block are used for seperating peak file into ordered arrays
 text = String.new
 volt = []
@@ -135,24 +131,24 @@ for i in 0..(a.size - 1)
 	#time[i] += tmp[2]
 	#########################################################################
 
-	volt[i] = (Integer(tmp[0])) 
-        date = tmp[1] #formatting to match sql timestamp enforcement
-        temp_date = date.split('/') #index list: 0 is month, 1 is day, 2 is year
+	#volt[i] = (Integer(tmp[0])) 
+        #date = tmp[1] #formatting to match sql timestamp enforcement
+        #temp_date = date.split('/') #index list: 0 is month, 1 is day, 2 is year
         
         # logic to add leading zeroes if needed
-        test = Integer(temp_date[0])
-        if test < 10
-                temp_date[0] = "0" + temp_date[0]
-        end
-        test = Integer(temp_date[1])
-        if test < 10
-                temp_date[1] = "0" + temp_date[1]
-        end
+        #test = Integer(temp_date[0])
+       # if test < 10
+       #         temp_date[0] = "0" + temp_date[0]
+       # end
+       # test = Integer(temp_date[1])
+       #if test < 10
+       #        temp_date[1] = "0" + temp_date[1]
+       #end
 
-        date = temp_date[2] + "-" + temp_date[0] + "-" + temp_date[1]
+        #date = temp_date[2] + "-" + temp_date[0] + "-" + temp_date[1]
         
-        time[i] = date + " "
-	time[i] += tmp[2]
+        #time[i] = date + " "
+	#time[i] += tmp[2]
 	
 
 end
