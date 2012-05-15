@@ -1,5 +1,5 @@
-
-test_array = [0,1,4,9,16,-25,36,49,64]
+# if you replace with neg values should cause not calc area
+test_array = [0,1,4,9,16,25,36,49,64]
 invalid_peak = false
 # expected answer: x^2 for step size 1 (0..7)
 # expected output for Simpson's rule
@@ -23,7 +23,7 @@ while index < range
 	if (test_array[index] < 0)
 			invalid_peak = true
 		end
-	puts puts "4*" + test_array[index].to_s
+	puts "4*" + test_array[index].to_s
 	y += (coef * test_array[index]) # y is running total
 	coef = 2
 	index += 1
