@@ -21,6 +21,10 @@ require  'peak_integration'
 
 tolerance = 100 # tolerance for the rate of growth of a peak; default is 100
 # file validation
+if ARGV.size == 0
+	puts "Usage: No filename entered on command line. Quitting."
+	exit
+end
 if File.exist?(ARGV[0]) == false
 	puts "Usage: File " + ARGV[0] + " not found. Quitting."
 	exit
