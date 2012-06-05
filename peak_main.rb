@@ -89,10 +89,10 @@ date = String.new
 temp_date = []
 tmp = []
 # this array holds the rate of change from one voltage sample to the next
-diff = [] 
+#diff = [] 
 # first entry is zero because the first sample doesn't have a previous sample 
 # to compare the change in text is assigned all of peak simple data
-diff[0] = 0  
+#diff[0] = 0  
 text = file.gets(nil) 
 a = text.split("\r\n")
 sum = 0
@@ -159,7 +159,7 @@ end
 
 # data needed to find peaks
 # data is placed in array together for method parameter
-data_array = [volt, time, diff] 
+data_array = [volt, time] 
 time_mv_array = [] # Used to store all peak data returned by the peak_finder
 pf = Peak_finder.new # this object is used to find peaks 
 # time_mv_array index 0 is the timestamps, index 1 is the mv data. 
