@@ -1,10 +1,18 @@
-Finds peaks in peak simple files generated from a chromatograph (N20 and CH4)
+Dependencies: linefit-0.0.1.gem,  peak_finder-1.0.1.gem,  peak_integration-1.0.0.gem
+
+peak_main.rb: Finds peaks in peak simple files generated from a chromatograph (N20 and CH4)
 
 Note: Negative mV values are ignored by peak finder
 
-peak_main.rb: A ruby program that accepts two command line arguments; <peak simple filename> <Pos.tolerance size> 
+A ruby program that accepts two options: 1) Database processing 2) manual Peak Simple file processing
 
-(default tolerance is 110 mV) 2nd argument is optional
+1-six command line arguments; <db name> <db username> <db password> <gas file type (ecd fid)> <run_id> <Pos.tolerance size>
+
+(default tolerance is 100 mV) 2nd argument is optional
+
+2-two command line arguments; <peak simple filename> <Pos.tolerance size> 
+
+(default tolerance is 100 mV) 6th argument is optional
 
 If the file is valid it uses the peak_finder gem to find the peaks, and extract the start/end times and the volt measures
 
@@ -12,7 +20,21 @@ that are used by the peak_integration gem to find the area of the peaks discover
 
 The main class then outputs a comma seperated text file with the Start, End, and Area in a file named millivolt.txt
 
+or processes all the injections for one run.
+
 This program can process Peak Simple files with or without timestamps included as columns.
+
+
+sample_concentration.rb: This program calculates the sample concentration for a Run.
+
+five command line arguments; <db name> <db username> <db password> <gas file type (ecd fid)> <run_id>
+
+
+flux.rb: This program calculates the Flux (ppm/minute) of a gas in a given chamber over time.
+
+five command line arguments; <db name> <db username> <db password> <gas file type (ecd fid)> <run_id>
+
+
 
 Nate DiPiazza
 GLBRC

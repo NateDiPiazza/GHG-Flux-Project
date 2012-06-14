@@ -1,7 +1,22 @@
 require 'pg'
 require 'dbi'
 
-
+# flux.rb######################################################
+# Author: Nathan DiPiazza
+# Company: GLBRC
+# Module 5
+# This program calculates the Flux (ppm/minute) of a gas in a given
+# chamber over time.
+# 
+# Command line parameters: 
+# 0: database name
+# 1: username
+# 2: password
+# 3: gas type             might be different than main CHANGE
+# 4: run_id 
+# 
+# Else: 0: filename for a test csv file
+###############################################################################
 
 db_name = ARGV[0] # gasflux
 user_name = ARGV[1] # gasflux
