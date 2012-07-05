@@ -1,14 +1,20 @@
 Dependencies: linefit-0.0.1.gem,  peak_finder-1.0.1.gem,  peak_integration-1.0.0.gem
 
+
+
 peak_main.rb: Finds peaks in peak simple files generated from a chromatograph (N20 and CH4)
 
 Note: Negative mV values are ignored by peak finder
 
 A ruby program that accepts two options: 1) Database processing 2) manual Peak Simple file processing
 
-1-six command line arguments; <db name> <db username> <db password> <gas file type (ecd fid)> <run_id> <Pos.tolerance size>
+1-five command line arguments; <db name> <db username> <db password> <run_id> <Pos.tolerance size>
 
 (default tolerance is 100 mV) 2nd argument is optional
+
+This program finds the peaks within each injection period (for both n2o and ch4) in a run and calculates their areas. It then updates
+
+the injections table with the area and its peak_start and peak_end times.  
 
 2-two command line arguments; <peak simple filename> <Pos.tolerance size> 
 
@@ -27,7 +33,10 @@ This program can process Peak Simple files with or without timestamps included a
 
 sample_concentration.rb: This program calculates the sample concentration for a Run.
 
-five command line arguments; <db name> <db username> <db password> <gas file type (ecd fid)> <run_id>
+three command line arguments; <db name> <db username> <db password> <run_id>
+This program calculates the sample concentrations for n2o, ch4, and co2 gases for a selected run.
+It then updates the injections table (or in the case of co2 the licor_samples table) with those values.
+Note: if no area is contained for an injection in a run, a default value of 0 is given for the corresponding sample.ppm.
 
 
 flux.rb: This program calculates the Flux (ppm/minute) of a gas in a given chamber over time.
@@ -37,4 +46,5 @@ five command line arguments; <db name> <db username> <db password> <gas file typ
 
 
 Nate DiPiazza
+ndipiazza@wisc.edu
 GLBRC
