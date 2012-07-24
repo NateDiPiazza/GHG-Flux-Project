@@ -22,8 +22,8 @@ n2o_standard = []
 co2_standard = []
 run_id_array = []
 control_ppm = 0.0
-not_found = 'F'
-bad_inject = []
+#not_found = 'F'
+#bad_inject = []
 ##############################################################################
 # helper method used to find new calibration value of regression
 # parameters: y intercept, slope, and x (time)
@@ -82,9 +82,9 @@ elsif (ARGV.size == 1) || (ARGV.size == 2)
    exit
 # pull data from the database
 else
-   db_name = ARGV[0] # gasflux
-   user_name = ARGV[1] # gasflux
-   pass = ARGV[2] # g@sf1ux 
+   db_name = ARGV[0] 
+   user_name = ARGV[1] 
+   pass = ARGV[2]  
    #run_id = ARGV[3] # example: 5864 
    dbh = DBI.connect("DBI:Pg:#{db_name}", user_name, pass)
    # processed = 1 means that the areas have been computed, limit set to 500 to keep speed up.
@@ -112,38 +112,66 @@ else
          # n2o area:     row[1]
          # chamber:      row[2]
          # injection id: row[3]
-         lrow = licor_db.fetch
-         if row[0].nil?
-            row[0] = 0
-            not_found = 'T'
-            bad_inject << row[3]
-         end 
-         if row[1].nil?
-            row[1] = 0
-            not_found = 'T'
-            bad_inject << row[3]
-         end 
-         if lrow[0].nil?
-            lrow[0] = 0
-            not_found = 'T'
-            bad_inject << lrow[1]
-         end 
+       if  lrow = licor_db.fetch
+       else
+           lrow = []
+       end
+         
+        # if area is null:
+        # rather than put value of zero, just skip over them
+
+        # if !row[0].nil?
+         #   row[0] = 0
+          #  not_found = 'T'
+           # bad_inject << row[3]
+         #end 
+         #if !row[1].nil?
+          #  row[1] = 0
+           # not_found = 'T'
+            #bad_inject << row[3]
+         #end 
+         #if !lrow[0].nil?
+          #  lrow[0] = 0
+           # not_found = 'T'
+            #bad_inject << lrow[1]
+         #end 
+
          # if  chamber is standard than keep the values for linear regression
          if row[2] == 'standard'
-            ch4_standard << row[0]
-            n2o_standard << row[1]
-            co2_standard << lrow[0]
+            if !row[0].nil?
+               ch4_standard << row[0]
+            end
+            if !row[1].nil?
+               n2o_standard << row[1]
+            end
+            if !lrow.empty?
+               if !lrow[0].nil?
+                  co2_standard << lrow[0]
+               end
+            end
          end # end if row[2]
          gas_array = [row[0],row[1],lrow[0],row[2],row[3],lrow[1]]
          run_array << gas_array
       end # end while row =
       run_db.finish
       licor_db.finish
-  
+      
       # These will contain the slope and y intercepts for the linear regressions
-      ch4_control_mv = get_line(ch4_standard)
-      n2o_control_mv = get_line(n2o_standard)
-      co2_control_mv = get_line(co2_standard)
+      if ch4_standard.size > 1
+         ch4_control_mv = get_line(ch4_standard)
+      else
+         ch4_control_mv = 'badInput'
+      end
+      if n2o_standard.size > 1
+         n2o_control_mv = get_line(n2o_standard)
+      else
+         n2o_control_mv = 'badInput'
+      end
+      if co2_standard.size > 1
+         co2_control_mv = get_line(co2_standard)
+      else
+         co2_control_mv = 'badInput'
+      end
       control_array = [ch4_control_mv, n2o_control_mv, co2_control_mv]
       # used for query column name
       sql_name = ["ch4_ppm", "n2o_ppm", "co2_ppm"]
@@ -159,26 +187,31 @@ else
       for i in 0..(run_array.size - 1) do
          injection = run_array[i]
          for j in 0..2 do
-            # if zero than injection area not in db
-            # control.ppm from tank
-            control_ppm = sample_array[j]        
-            # sample.mv at time t
-            sample_mv = injection[j]
-            # control.mv is linregression evaluated at x at time t,
-            # call get_y for calibration values
-            control_mv = get_y(control_array[j][0], control_array[j][1], i + 1)       
-            sample_ppm = (control_ppm * sample_mv)/control_mv
-            # The sample concentration then needs to be put into the database.
-            # injection index 4 is injection_id and index 5 is incubation_id
-            # in case of division by zero
-            if sample_ppm.nan?
-               sample_ppm = 0
-            end
-            if j == 2 
-               dbh.do("UPDATE licor_samples SET sample_ppm = #{sample_ppm} WHERE incubation_id = #{injection[5]}")
-            else
-               dbh.do("UPDATE injections SET #{sql_name[j]} = #{sample_ppm} WHERE id = #{injection[4]}")
-            end # if j == 2 else
+            
+            if !control_array[j] === 'badInput'
+               # puts "In loop"
+               # if zero than injection area not in db
+               # control.ppm from tank
+               control_ppm = sample_array[j]        
+               # sample.mv at time t
+               sample_mv = injection[j]
+               # control.mv is linregression evaluated at x at time t,
+               # call get_y for calibration values
+               control_mv = get_y(control_array[j][0], control_array[j][1], i + 1)
+               
+               # condition to ensure null or Nan values are skipped over
+               if (!sample_mv.nil? && !control_mv.zero?)
+                  sample_ppm = (control_ppm * sample_mv)/control_mv
+                  # The sample concentration then needs to be put into the database.
+                  # injection index 4 is injection_id and index 5 is incubation_id
+                  
+                  if j == 2 
+                     dbh.do("UPDATE licor_samples SET sample_ppm = #{sample_ppm} WHERE incubation_id = #{injection[5]}")
+                  else
+                     dbh.do("UPDATE injections SET #{sql_name[j]} = #{sample_ppm} WHERE id = #{injection[4]}")
+                  end # end of if j == 2 else
+               end # end of if not null or zero
+            end # end of if bad input
          end # end for j
       end # end for i
       dbh.do("UPDATE runs SET processed = 2 WHERE id = #{run_id}")
@@ -188,13 +221,12 @@ else
    end # end runs loop
 end # end if,else block
 puts ""
-if not_found == 'F'
-   puts "sample concentrations successfully added!"
-else
-   puts "This run contained at least one injection with no area value!\nPlease check injections:"
-   # uncomment for ids of null injections
-   # bad_inject.uniq.each {|e| print e.to_s + " "}
-end
+puts "sample concentrations successfully added!"
+   # else
+   # puts "This run contained at least one injection with no area value!\nPlease check injections:"
+   ## uncomment for ids of null injections
+   ## bad_inject.uniq.each {|e| print e.to_s + " "}
+  #end
 # end program
 
 

@@ -36,12 +36,13 @@ sample_concentration.rb: This program calculates the sample concentration for a 
 three command line arguments; <db name> <db username> <db password> <run_id>
 This program calculates the sample concentrations for n2o, ch4, and co2 gases for a selected run.
 It then updates the injections table (or in the case of co2 the licor_samples table) with those values.
-Note: if no area is contained for an injection in a run, a default value of 0 is given for the corresponding sample.ppm.
+Note: if no area is contained for an injection in a run, it is skipped over and no ppm is entered for that injection.
 
 
 flux.rb: This program calculates the Flux (ppm/minute) of a gas in a given chamber over time.
 
-five command line arguments; <db name> <db username> <db password> <gas file type (ecd fid)> <run_id>
+three command line arguments; <db name> <db username> <db password>
+The data is then entered into the incubations datatable.
 
 
 

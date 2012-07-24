@@ -1,7 +1,6 @@
 require 'pg'
 require 'dbi'
 
-
 # Flux.rb#####################################################################
 # Author: Nathan DiPiazza
 # Company: GLBRC
@@ -10,69 +9,114 @@ require 'dbi'
 # This program calculates the flux for each injection of an 
 # entire run(for ch4, n2o, and co2),using the concentrations 
 # produced by module 4. The data is then entered into the 
-# incubations datatable.
+# incubations datatable. A run flag = 2 means that the ppm values have
+# been calculated and the flux can be found. Flag is set to 3 after values
+# have been updated in DB
 # 
 # Command line parameters: 
 # 0: database name
 # 1: username
 # 2: password
-# 3: run_id 
-#TODO if needed at params for 'b' and 'c'
 ##############################################################################
 
-# Global Variables############################################################
-ch4_flux = [] # hold ch4 ppms    from injections
-n2o_flux = [] # hold n20 ppms    from injections
-co2_flux = [] # hold sample ppms from licor_samples
+# Global Variables ###########################################################
+ch4 = [] # hold ch4 ppms    from injections
+n2o = [] # hold n20 ppms    from injections
+co2 = [] # hold sample ppms from licor_samples
 times = []    # sampled_at times
 ids = []      # primary key to update data table
+run_id_array = [] # array to store appropriate run ids
+a = 0 # slope in ppm/min
 ##############################################################################
 
-db_name = ARGV[0] # gasflux
-user_name = ARGV[1] # gasflux
-pass = ARGV[2] # g@sf1ux
-run_id = ARGV[3] # 5864 or anything
+# validation block
+if ARGV.size > 3
+   puts "Usage: Too many command line arguments. Quitting"
+   exit
+end
+if ARGV.size == 0
+   puts "Usage: No command line arguments given. Quitting"
+   exit
+end
+if (ARGV.size == 1) || (ARGV.size == 2)
+   puts "Usage: Three command line arguments are required. Quitting"
+   exit
+end
+
+db_name = ARGV[0] 
+user_name = ARGV[1] 
+pass = ARGV[2] 
+#run_id = ARGV[3] 
 
 dbh = DBI.connect("DBI:Pg:#{db_name}", user_name, pass)
 
-# select concentrations and injection times from db for one run
-flux_db = dbh.execute("SELECT injections.ch4_ppm, injections.n2o_ppm, incubations.sample_ppm, injections.sampled_at, incubations.id FROM injections JOIN incubations ON injections.id = incubations.id WHERE injections.run_id = #{run_id}")
+# pull 'a' and 'b' from database
+flux_constant_db = dbh.execute("SELECT * FROM flux_constant")
+row = flux_constant_db.fetch 
+b = row[0] # headspace volumeof the container (Liters)
+c = row[1] # molecular weight
+flux_constant_db.finish
 
-while row = flux_db.fetch do
-    ch4_flux << row[0]
-    n2o_flux << row[1]
-    co2_flux << row[2]
-    times    << row[3]
-    ids      << row[4]
+# processed = 2 means that the ppms have been computed, limit set to 500 to keep speed up.
+runs_db = dbh.execute("SELECT runs.id FROM runs JOIN injections ON injections.run_id = runs.id WHERE runs.processed = 2 LIMIT 500")
+print "Processing "
+while row = runs_db.fetch do
+   run_id_array << row[0]
 end
-run_array = [ch4_flux, n2o_flux, co2_flux, times, ids]
-# loop through updating all incubations with flux values
-for j in 0..(run_array.size - 1) do
-   # apply formula to get flux
-   a = 0 # slope in ppm/min
-   b = 0 # headspace volumeof the container (Liters)
-   c = 0 # molecular weight
-   # loop to handle the three gases
-   for i in 0..2 do
-      # selects the current gas
-      if i == 0
-         gas_type = 'ch4_flux'
-         a = run_array[j][0]
-      elsif i == 1
-         gas_type = 'n2o_flux'
-         a = run_array[j][1]
-      else
-         gas_type = 'co2_flux'
-         a = run_array[j][2]
-      end
-      # Chamber time
-      t = run_array[i][3]
-      # incubation id
-      i_id = run_array[i][4]	
-      # formula to convert ppm/min to grams of compound per hectare per day
-      f = a * b * (1/745) * 10000 * 10000 * 60 * 24 * (1/22.4) * c * (1/1000) * (1/1000)
-      # Update the incubations data table
-      dbh.do("UPDATE incubations SET #{gas_type} = #{f}, #{sample_time} = #{t} WHERE id = #{i_id} )")
+# If zero rows are returned from query then processing is up to date.
+if run_id_array.empty?
+   puts "There are currently no runs to process. Quitting."
+   exit
+end
+run_id_array.uniq!
+# big loop to go through all unprocessed runs (LIMIT 500)
+for r in 0..(run_id_array.size - 1)
+   run_id = run_id_array[r]
 
-   end # for i
-end # end j
+   # select concentrations and injection times from db for one run
+   flux_db = dbh.execute("SELECT injections.ch4_ppm, injections.n2o_ppm, incubations.sample_ppm, injections.sampled_at, incubations.id FROM injections JOIN incubations ON injections.id = incubations.id WHERE injections.run_id = #{run_id}")
+
+   while row = flux_db.fetch do
+       ch4 << row[0]
+       n2o << row[1]
+       co2 << row[2]
+       times << row[3]
+       ids   << row[4]
+   end
+   run_array = [ch4, n2o, co2, times, ids]
+
+   # loop through to  update all incubations with flux values
+   for j in 0..(run_array.size - 1) do
+      # loop to handle the three gases
+      for i in 0..2 do
+         # selects the current gas
+         if i == 0
+            gas_type = 'ch4_flux'
+            a = run_array[j][0]
+         elsif i == 1
+            gas_type = 'n2o_flux'
+            a = run_array[j][1]
+         else
+            gas_type = 'co2_flux'
+            a = run_array[j][2]
+         end
+         # Chamber time
+         t = run_array[i][3]
+         # incubation id
+         i_id = run_array[i][4]	
+         # formula to convert ppm/min to grams of compound per hectare per day
+         #f = a * b * (1/745) * 10000 * 10000 * 60 * 24 * (1/22.4) * c * (1/1000) * (1/1000)
+         f = a * b * c * (9000/1043) # simplified
+         # Update the incubations data table
+         dbh.do("UPDATE incubations SET #{gas_type} = #{f}, #{sample_time} = #{t} WHERE id = #{i_id} )")
+
+      end # for i
+   end # end j
+   dbh.do("UPDATE runs SET processed = 3 WHERE id = #{run_id}")
+      if (run_id % 5) == 0
+             print ". "
+      end # end run_id %
+end # runs loop for r
+puts ""
+puts "flux values successfully added!"
+# end of program
