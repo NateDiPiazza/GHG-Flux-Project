@@ -95,6 +95,7 @@ else
    end
    # If zero rows are returned from query then processing is up to date.
    if run_id_array.empty?
+      puts ""
       puts "There are currently no runs to process. Quitting."
       exit
    end

@@ -50,8 +50,8 @@ pass = ARGV[2]
 
 dbh = DBI.connect("DBI:Pg:#{db_name}", user_name, pass)
 
-# pull 'a' and 'b' from database
-flux_constant_db = dbh.execute("SELECT * FROM flux_constant")
+# pull 'b' (headspace) and 'c' (molecular_weight) from database
+flux_constant_db = dbh.execute("SELECT * FROM flux_constants where id = (SELECT MAX(id) FROM flux_constants)") # Query assumes that latest entry contains the current values
 row = flux_constant_db.fetch 
 b = row[0] # headspace volumeof the container (Liters)
 c = row[1] # molecular weight
@@ -65,6 +65,7 @@ while row = runs_db.fetch do
 end
 # If zero rows are returned from query then processing is up to date.
 if run_id_array.empty?
+   puts ""
    puts "There are currently no runs to process. Quitting."
    exit
 end

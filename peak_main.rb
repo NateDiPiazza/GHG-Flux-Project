@@ -101,6 +101,7 @@ elsif ((ARGV.size == 3) || (ARGV.size == 4))
     end
     # If zero rows are returned from query then processing is up to date.
     if run_id_array.empty?
+       puts ""
        puts "There are currently no runs to process. Quitting."
        exit
     end
@@ -166,8 +167,12 @@ elsif ((ARGV.size == 3) || (ARGV.size == 4))
 
               if gas == 'ecd'
                  gas_type = "n2o_area" #gas_type name much match postgres db column name
+                 peak_start = "n2o_peak_start"
+                 peak_end = "n2o_peak_end"
               else
                  gas_type = "ch4_area"
+                 peak_start = "ch4_peak_start"
+                 peak_end = "ch4_peak_end"
               end # end if else
               # there should also only be one entry in peak_s/e arrays too; (one for start/end time)
               if !areas.empty? and !areas.first.nil?
@@ -175,7 +180,7 @@ elsif ((ARGV.size == 3) || (ARGV.size == 4))
                  ending = "'#{peak_e.first}'"
                  # areas should have only one entry (the area of the one injection peak)
                  # UPDATE injections table: peak area, peak_start, and peak_end
-                 dbh.do("UPDATE injections SET #{gas_type} = #{areas.first}, peak_start = #{start}, peak_end = #{ending} WHERE id = #{current_id}")
+                 dbh.do("UPDATE injections SET #{gas_type} = #{areas.first}, #{peak_start} = #{start}, #{peak_end} = #{ending} WHERE id = #{current_id}")
               end # if not empty
               # reset arrays for the next loop
               areas = []

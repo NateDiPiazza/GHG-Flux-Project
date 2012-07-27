@@ -8,7 +8,7 @@ invalid_peak = false
 coef = 4 # alternates between 4 and 2 during integration loop
 range = test_array.size - 2 # loop induction variable
 
-if (test_array.size % 2) == 1
+if test_array.size.even?
 	range -= 1 # test_arrayust be even for Sitest_arraypson's rule
 end
 
