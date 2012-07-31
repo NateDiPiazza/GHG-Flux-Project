@@ -95,7 +95,6 @@ else
    end
    # If zero rows are returned from query then processing is up to date.
    if run_id_array.empty?
-      puts ""
       puts "There are currently no runs to process. Quitting."
       exit
    end
@@ -188,8 +187,9 @@ else
       for i in 0..(run_array.size - 1) do
          injection = run_array[i]
          for j in 0..2 do
-            
-            if !control_array[j] === 'badInput'
+            # if badInput than the standards do not have enough points for a linear regression
+            # e.g. a sample cannot be calculated without at least 2 standard values not null
+            if !(control_array[j] == 'badInput')
                # puts "In loop"
                # if zero than injection area not in db
                # control.ppm from tank
@@ -199,18 +199,16 @@ else
                # control.mv is linregression evaluated at x at time t,
                # call get_y for calibration values
                control_mv = get_y(control_array[j][0], control_array[j][1], i + 1)
-               
                # condition to ensure null or Nan values are skipped over
                if (!sample_mv.nil? && !control_mv.zero?)
                   sample_ppm = (control_ppm * sample_mv)/control_mv
                   # The sample concentration then needs to be put into the database.
                   # injection index 4 is injection_id and index 5 is incubation_id
-                  
-                  if j == 2 
-                     dbh.do("UPDATE licor_samples SET sample_ppm = #{sample_ppm} WHERE incubation_id = #{injection[5]}")
-                  else
+                  #if j == 2 # If co2 is moved than we can change this; was in licor_samples.
+                     #dbh.do("UPDATE licor_samples SET sample_ppm = #{sample_ppm} WHERE incubation_id = #{injection[5]}")
+                  #else
                      dbh.do("UPDATE injections SET #{sql_name[j]} = #{sample_ppm} WHERE id = #{injection[4]}")
-                  end # end of if j == 2 else
+                  #end # end of if j == 2 else
                end # end of if not null or zero
             end # end of if bad input
          end # end for j

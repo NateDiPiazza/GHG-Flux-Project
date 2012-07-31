@@ -95,6 +95,7 @@ elsif ((ARGV.size == 3) || (ARGV.size == 4))
     # Grab all unprocessed run_ids
     # limit of 100 arbitrarily chosen to keep from slowing down
     runs_db = dbh.execute("SELECT id FROM runs WHERE processed = 0 LIMIT 100")
+    #TODO test query runs_db = dbh.execute("select id from runs where date_part('year', sampled_at) = 2012 and date_part('month', sampled_at) = 02 limit 50")
     print "Processing "
     while row = runs_db.fetch do
        run_id_array << row[0]

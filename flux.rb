@@ -50,12 +50,19 @@ pass = ARGV[2]
 
 dbh = DBI.connect("DBI:Pg:#{db_name}", user_name, pass)
 
-# pull 'b' (headspace) and 'c' (molecular_weight) from database
-flux_constant_db = dbh.execute("SELECT * FROM flux_constants where id = (SELECT MAX(id) FROM flux_constants)") # Query assumes that latest entry contains the current values
-row = flux_constant_db.fetch 
+# pull 'b' (headspace) form database
+deploy_db = dbh.execute("SELECT height FROM deployments WHERE deployed_on = (SELECT MAX(deployed_on) FROM deployments)") # TODO refine this when more info arrives
+row = deploy_db.fetch 
 b = row[0] # headspace volumeof the container (Liters)
-c = row[1] # molecular weight
-flux_constant_db.finish
+deploy_db.finish
+# and 'c' from database molecular_weight (these values are constant)
+flux_constants_db = dbh.execute("SELECT n2o_weight, ch4_weight, co2_weight FROM molecular_weight")
+row = flux_constants_db.fetch
+# molecular weights
+c_n2o = row[0] 
+c_ch4 = row[1]
+c_co2 = row[2]
+flux_constants_db.finish
 
 # processed = 2 means that the ppms have been computed, limit set to 500 to keep speed up.
 runs_db = dbh.execute("SELECT runs.id FROM runs JOIN injections ON injections.run_id = runs.id WHERE runs.processed = 2 LIMIT 500")
@@ -75,7 +82,9 @@ for r in 0..(run_id_array.size - 1)
    run_id = run_id_array[r]
 
    # select concentrations and injection times from db for one run
-   flux_db = dbh.execute("SELECT injections.ch4_ppm, injections.n2o_ppm, incubations.sample_ppm, injections.sampled_at, incubations.id FROM injections JOIN incubations ON injections.id = incubations.id WHERE injections.run_id = #{run_id}")
+   flux_db = dbh.execute("SELECT injections.ch4_ppm, injections.n2o_ppm, injections.co2_ppm, injections.sampled_at, incubations.id FROM injections JOIN incubations ON injections.id = incubations.id WHERE injections.run_id = #{run_id}")
+
+#flux_db = dbh.execute("SELECT injections.ch4_ppm, injections.n2o_ppm, licor_samples.co2_ppm, injections.sampled_at, incubations.id FROM injections JOIN incubations ON injections.id = incubations.id join licor_samples on incubations.id = licor_samples.incubation_id where injections.run_id = #{run_id}")
 
    while row = flux_db.fetch do
        ch4 << row[0]
@@ -92,12 +101,15 @@ for r in 0..(run_id_array.size - 1)
       for i in 0..2 do
          # selects the current gas
          if i == 0
+            c = c_ch4
             gas_type = 'ch4_flux'
             a = run_array[j][0]
          elsif i == 1
+            c = c_n20
             gas_type = 'n2o_flux'
             a = run_array[j][1]
          else
+            c = c_co2
             gas_type = 'co2_flux'
             a = run_array[j][2]
          end
