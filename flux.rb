@@ -26,6 +26,8 @@ co2 = [] # hold sample ppms from licor_samples
 times = []    # sampled_at times
 ids = []      # primary key to update data table
 run_id_array = [] # array to store appropriate run ids
+chamber = []
+mol_weight = Hash.new # the keys for this hash will be the gas names
 a = 0 # slope in ppm/min
 ##############################################################################
 
@@ -50,19 +52,13 @@ pass = ARGV[2]
 
 dbh = DBI.connect("DBI:Pg:#{db_name}", user_name, pass)
 
-# pull 'b' (headspace) form database
-deploy_db = dbh.execute("SELECT height FROM deployments WHERE deployed_on = (SELECT MAX(deployed_on) FROM deployments)") # TODO refine this when more info arrives
-row = deploy_db.fetch 
-b = row[0] # headspace volumeof the container (Liters)
-deploy_db.finish
 # and 'c' from database molecular_weight (these values are constant)
-flux_constants_db = dbh.execute("SELECT n2o_weight, ch4_weight, co2_weight FROM molecular_weight")
-row = flux_constants_db.fetch
-# molecular weights
-c_n2o = row[0] 
-c_ch4 = row[1]
-c_co2 = row[2]
-flux_constants_db.finish
+comp_db = dbh.execute("SELECT name, mol_weight FROM compounds")
+while row = comp_db.fetch do
+   # molecular weights (g/mol)
+   mol_weight[row[0]] = row[1]
+end
+comp_db.finish
 
 # processed = 2 means that the ppms have been computed, limit set to 500 to keep speed up.
 runs_db = dbh.execute("SELECT runs.id FROM runs JOIN injections ON injections.run_id = runs.id WHERE runs.processed = 2 LIMIT 500")
@@ -80,9 +76,8 @@ run_id_array.uniq!
 # big loop to go through all unprocessed runs (LIMIT 500)
 for r in 0..(run_id_array.size - 1)
    run_id = run_id_array[r]
-
    # select concentrations and injection times from db for one run
-   flux_db = dbh.execute("SELECT injections.ch4_ppm, injections.n2o_ppm, injections.co2_ppm, injections.sampled_at, incubations.id FROM injections JOIN incubations ON injections.id = incubations.id WHERE injections.run_id = #{run_id}")
+   flux_db = dbh.execute("SELECT injections.ch4_ppm, injections.n2o_ppm, injections.co2_ppm, injections.sampled_at, incubations.id, incubations.chamber FROM injections JOIN incubations ON injections.run_id = incubations.run_id WHERE injections.run_id = #{run_id}")
 
 #flux_db = dbh.execute("SELECT injections.ch4_ppm, injections.n2o_ppm, licor_samples.co2_ppm, injections.sampled_at, incubations.id FROM injections JOIN incubations ON injections.id = incubations.id join licor_samples on incubations.id = licor_samples.incubation_id where injections.run_id = #{run_id}")
 
@@ -92,37 +87,51 @@ for r in 0..(run_id_array.size - 1)
        co2 << row[2]
        times << row[3]
        ids   << row[4]
+      chamber << row[5]
    end
-   run_array = [ch4, n2o, co2, times, ids]
-
+   run_array = [ch4, n2o, co2, times, ids, chamber]
+   
    # loop through to  update all incubations with flux values
    for j in 0..(run_array.size - 1) do
       # loop to handle the three gases
       for i in 0..2 do
          # selects the current gas
          if i == 0
-            c = c_ch4
+            c = mol_weight['ch4']
             gas_type = 'ch4_flux'
-            a = run_array[j][0]
+            a = run_array[0][j]
          elsif i == 1
-            c = c_n20
+            c = mol_weight['n2o']
             gas_type = 'n2o_flux'
-            a = run_array[j][1]
+            a = run_array[1][j]
          else
-            c = c_co2
+            c = mol_weight['co2']
             gas_type = 'co2_flux'
-            a = run_array[j][2]
+            a = run_array[2][j]
          end
-         # Chamber time
-         t = run_array[i][3]
-         # incubation id
-         i_id = run_array[i][4]	
-         # formula to convert ppm/min to grams of compound per hectare per day
-         #f = a * b * (1/745) * 10000 * 10000 * 60 * 24 * (1/22.4) * c * (1/1000) * (1/1000)
-         f = a * b * c * (9000/1043) # simplified
-         # Update the incubations data table
-         dbh.do("UPDATE incubations SET #{gas_type} = #{f}, #{sample_time} = #{t} WHERE id = #{i_id} )")
-
+         # if a is null than there is no concentration for this flux
+         if a.nil? == false
+            # Chamber & time
+            t = run_array[3][j]
+            cr = run_array[5][j]
+            # pull 'b' (headspace) form database
+            deploy_db = dbh.execute("select height from deployments where '#{t}' between deployed_on and removed_on and chamber = '#{cr}'") # Query assumes that latest entry contains the current values
+            row = deploy_db.fetch 
+            b = row[0] # headspace volumeof the container (Liters)
+            deploy_db.finish
+            # Validation to ensure that headspace height measurement exists in DB
+            if b.nil?
+               puts "Error: No headspace height found for chamber: #{cr}, at time: #{t}.\nPlease check deployments datatable."
+               exit
+            end
+            # incubation id
+            i_id = run_array[4][j]	
+            # formula to convert ppm/min to grams of compound per hectare per day
+            #f = a * b * (1/745) * 10000 * 10000 * 60 * 24 * (1/22.4) * c * (1/1000) * (1/1000)
+            f = (a * b * c * (9000/1043)) # simplified
+            # Update the incubations data table
+            dbh.do("UPDATE incubations SET #{gas_type} = #{f}, sampled_at = '#{t}' WHERE id = #{i_id}")
+         end # end nil check
       end # for i
    end # end j
    dbh.do("UPDATE runs SET processed = 3 WHERE id = #{run_id}")
