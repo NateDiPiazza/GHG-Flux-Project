@@ -8,7 +8,8 @@ class LinearPeakFinder < PeakFinder
     volt = injection.fid_with_time
     unless volt.empty?
       unless volt[0][:mv].nil?
-        peak_finder_fid(volt)
+        #peak_finder_fid(volt)
+        peak_finding_fid(volt)
       end
     end
   end
@@ -21,7 +22,8 @@ class LinearPeakFinder < PeakFinder
     volt = injection.ecd_with_time
     unless volt.empty?
       unless volt[0][:mv].nil?
-        peak_finder_ecd(volt)
+        #peak_finder_ecd(volt)
+        peak_finding_ecd(volt)
       end
     end
   end
